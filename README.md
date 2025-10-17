@@ -98,10 +98,6 @@ El proyecto tiene Lovable Cloud habilitado, proporcionando:
 <lov-open-backend>Ver Backend</lov-open-backend>
 </lov-actions>
 
-## 📚 Documentación
-
-- [Lovable Cloud](https://docs.lovable.dev/features/cloud)
-- [Lovable AI](https://docs.lovable.dev/features/ai)
 
 ---
 
