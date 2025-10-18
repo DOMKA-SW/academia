@@ -8,7 +8,8 @@ export default function Navbar() {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const isActive = (path) => location.pathname === path;
+  // ✅ CORREGIDO - agregué el tipo string
+  const isActive = (path: string) => location.pathname === path;
 
   const navLinks = [
     { path: "/courses", label: "Cursos", icon: BookOpen },
