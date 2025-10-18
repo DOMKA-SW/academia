@@ -1,71 +1,134 @@
-import { useState } from "react";
-import { collection, addDoc } from "firebase/firestore";
+import React, { useEffect, useState } from "react";
 import { db } from "../firebase";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+} from "firebase/firestore";
+
+interface Course {
+  id?: string;
+  title: string;
+  description: string;
+  level: string;
+  price: number;
+}
 
 export default function AdminPanel() {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [image, setImage] = useState("");
-  const [lessons, setLessons] = useState("");
-  const [message, setMessage] = useState("");
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [formData, setFormData] = useState<Course>({
+    title: "",
+    description: "",
+    level: "Básico",
+    price: 0,
+  });
 
-  const handleSubmit = async (e) => {
+  // 🔹 Cargar cursos existentes
+  const fetchCourses = async () => {
+    const querySnapshot = await getDocs(collection(db, "courses"));
+    const courseList = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Course[];
+    setCourses(courseList);
+  };
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  // 🔹 Crear nuevo curso
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await addDoc(collection(db, "courses"), {
-        title,
-        description,
-        image,
-        lessons: lessons.split(",").map((l) => l.trim()),
-      });
-      setMessage("✅ Curso creado correctamente");
-      setTitle("");
-      setDescription("");
-      setImage("");
-      setLessons("");
-    } catch (err) {
-      setMessage("❌ Error al crear curso");
-    }
+    if (!formData.title || !formData.description) return alert("Completa todos los campos");
+
+    await addDoc(collection(db, "courses"), {
+      ...formData,
+      createdAt: serverTimestamp(),
+    });
+    setFormData({ title: "", description: "", level: "Básico", price: 0 });
+    fetchCourses();
+  };
+
+  // 🔹 Eliminar curso
+  const handleDelete = async (id?: string) => {
+    if (!id) return;
+    await deleteDoc(doc(db, "courses", id));
+    fetchCourses();
   };
 
   return (
-    <div className="max-w-lg mx-auto bg-white p-6 rounded-xl shadow mt-8">
-      <h2 className="text-2xl font-semibold mb-4 text-center">Panel de administración</h2>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+    <div className="max-w-3xl mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-4 text-center">Panel de Administración</h1>
+
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-4 rounded-xl shadow-md mb-6 space-y-3"
+      >
         <input
           type="text"
           placeholder="Título del curso"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="border p-2 rounded"
-          required
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          className="w-full border p-2 rounded"
         />
         <textarea
           placeholder="Descripción"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="border p-2 rounded"
-          required
+          value={formData.description}
+          onChange={(e) =>
+            setFormData({ ...formData, description: e.target.value })
+          }
+          className="w-full border p-2 rounded"
         />
+        <select
+          value={formData.level}
+          onChange={(e) => setFormData({ ...formData, level: e.target.value })}
+          className="w-full border p-2 rounded"
+        >
+          <option>Básico</option>
+          <option>Intermedio</option>
+          <option>Avanzado</option>
+        </select>
         <input
-          type="text"
-          placeholder="URL de imagen o portada"
-          value={image}
-          onChange={(e) => setImage(e.target.value)}
-          className="border p-2 rounded"
+          type="number"
+          placeholder="Precio (opcional)"
+          value={formData.price}
+          onChange={(e) =>
+            setFormData({ ...formData, price: Number(e.target.value) })
+          }
+          className="w-full border p-2 rounded"
         />
-        <input
-          type="text"
-          placeholder="Lecciones separadas por comas"
-          value={lessons}
-          onChange={(e) => setLessons(e.target.value)}
-          className="border p-2 rounded"
-        />
-        <button className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+        <button
+          type="submit"
+          className="bg-blue-600 text-white w-full py-2 rounded-lg hover:bg-blue-700"
+        >
           Crear curso
         </button>
       </form>
-      {message && <p className="text-center mt-3">{message}</p>}
+
+      <h2 className="text-xl font-semibold mb-3">Cursos existentes</h2>
+      <ul className="space-y-3">
+        {courses.map((c) => (
+          <li
+            key={c.id}
+            className="p-3 bg-gray-50 border rounded flex justify-between items-center"
+          >
+            <div>
+              <h3 className="font-bold">{c.title}</h3>
+              <p className="text-sm text-gray-600">{c.level}</p>
+            </div>
+            <button
+              onClick={() => handleDelete(c.id)}
+              className="text-red-500 hover:text-red-700"
+            >
+              Eliminar
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
